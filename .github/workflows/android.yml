@@ -1,5 +1,9 @@
 name: CardForge CI/CD
 
+permissions:
+  contents: write
+  actions: write
+
 on:
   push:
     branches:
@@ -31,7 +35,7 @@ jobs:
 
     # Gradle cache
     - name: Gradle Cache
-      uses: gradle/gradle-build-action@v2
+      uses: gradle/actions/setup-gradle@v3
 
     # Build
     - name: Compile Project
