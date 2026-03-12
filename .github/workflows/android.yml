@@ -36,6 +36,8 @@ jobs:
     # Gradle cache
     - name: Gradle Cache
       uses: gradle/actions/setup-gradle@v3
+      with:
+        cache-read-only: false
 
     # Build
     - name: Compile Project
