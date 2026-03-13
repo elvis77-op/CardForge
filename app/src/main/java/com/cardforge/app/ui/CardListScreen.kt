@@ -11,9 +11,13 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.platform.LocalContext
 import kotlinx.coroutines.launch
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.navigation.compose.rememberNavController
 import com.cardforge.app.utils.TxtImporter
@@ -21,8 +25,11 @@ import com.cardforge.app.utils.TextChunker
 import com.cardforge.app.cardgen.BasicCardGenerator
 import com.cardforge.app.database.DatabaseProvider
 import com.cardforge.app.repository.CardRepository
+import com.cardforge.app.ui.components.NotificationMessage
 import com.cardforge.app.viewmodel.CardViewModel
 import com.cardforge.app.viewmodel.CardViewModelFactory
+import com.cardforge.app.ui.components.NotificationHost
+import com.cardforge.app.ui.components.CardPreviewItem
 
 @Composable
 fun CardListScreen(
@@ -30,11 +37,12 @@ fun CardListScreen(
     deckId: Long,
     onStartReview: () -> Unit
 ) {
+
     val scope = rememberCoroutineScope()
 
-
-    val database = DatabaseProvider.getDatabase(context)
-    val repository = CardRepository(database.cardDao())
+    val repository = remember {
+        CardRepository(DatabaseProvider.getDatabase(context).cardDao())
+    }
 
     val viewModel: CardViewModel = viewModel(
         factory = CardViewModelFactory(repository)
@@ -42,9 +50,25 @@ fun CardListScreen(
 
     val cards by viewModel.cards.collectAsState()
 
+    val listState = rememberLazyListState()
+
     var showDialog by remember { mutableStateOf(false) }
 
-    val navController = rememberNavController()
+    val notifications =
+        remember { mutableStateListOf<NotificationMessage>() }
+
+    fun pushNotification(msg: NotificationMessage) {
+
+        notifications.add(0, msg)
+
+        scope.launch {
+
+            kotlinx.coroutines.delay(3000)
+
+            notifications.remove(msg)
+
+        }
+    }
 
     val txtPicker = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
@@ -53,20 +77,24 @@ fun CardListScreen(
         uri?.let {
 
             val text = TxtImporter.readText(context, it)
-
             val chunks = TextChunker.splitText(text)
 
-            val cards =
+            val generatedCards =
                 BasicCardGenerator.generateCards(deckId, chunks)
 
             scope.launch {
 
-                cards.forEach { card ->
-                    repository.insertCard(card)
+                generatedCards.forEach {
+                    repository.insertCard(it)
                 }
 
                 viewModel.loadCards(deckId)
 
+                pushNotification(
+                    NotificationMessage(
+                        text = "${generatedCards.size} cards imported"
+                    )
+                )
             }
         }
     }
@@ -75,86 +103,149 @@ fun CardListScreen(
         viewModel.loadCards(deckId)
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(16.dp)
+    LaunchedEffect(cards) {
+
+        val newestIndex =
+            cards.indexOfFirst {
+                System.currentTimeMillis() - it.createdAt < 5000
+            }
+
+        if (newestIndex != -1) {
+            listState.animateScrollToItem(newestIndex)
+        }
+
+    }
+
+    Box(
+        modifier = Modifier.fillMaxSize()
     ) {
 
-        Row {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(16.dp)
+        ) {
 
-            Button(
-                onClick = { showDialog = true }
-            ) {
-                Text("Add Card")
-            }
+            Text(
+                text = "Cards: ${cards.size}",
+                style = MaterialTheme.typography.titleMedium
+            )
 
-            Spacer(modifier = Modifier.width(8.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            Button(
-                onClick = {
-                    txtPicker.launch("text/plain")
+            Row {
+
+                Button(
+                    onClick = { showDialog = true }
+                ) {
+                    Text("Add Card")
                 }
-            ) {
-                Text("Import TXT")
-            }
 
-            Button(
-                onClick = {
-                    navController.navigate("review/$deckId")
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = {
+                        txtPicker.launch("text/plain")
+                    }
+                ) {
+                    Text("Import TXT")
                 }
-            ) {
-                Text("Start Review")
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Button(
+                    onClick = { onStartReview() }
+                ) {
+                    Text("Start Review")
+                }
+
             }
 
-        }
+            Spacer(modifier = Modifier.height(16.dp))
 
-        Spacer(modifier = Modifier.height(16.dp))
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.weight(1f)
+            ) {
 
-        LazyColumn {
+                items(cards) { card ->
 
-            items(cards) { card ->
-                val isNew =
-                    System.currentTimeMillis() - card.createdAt < 5000
-
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor =
-                            if (isNew)
-                                Color(0xFFA5D6A7)   // 浅绿色
-                            else
-                                MaterialTheme.colorScheme.surface
-                    )
-                ){
-
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    Box(
+                        modifier = Modifier.fillMaxWidth(),
+                        contentAlignment = Alignment.Center
                     ) {
 
-                        Text("Front: ${card.front}")
-                        Text("Back: ${card.back}")
+                        CardPreviewItem(
 
-                        TextButton(
-                            onClick = { viewModel.deleteCard(card, deckId) }
-                        ) {
-                            Text("Delete")
-                        }
+                            card = card,
+
+                            onDelete = {
+
+                                viewModel.deleteCard(card, deckId)
+
+                                pushNotification(
+                                    NotificationMessage(
+                                        text = "Card deleted",
+                                        actionLabel = "UNDO",
+                                        onAction = {
+
+                                            viewModel.addCard(
+                                                deckId,
+                                                card.front,
+                                                card.back
+                                            )
+
+                                        }
+                                    )
+                                )
+
+                            }
+
+                        )
+
                     }
+
                 }
+
             }
+
         }
+
+        NotificationHost(
+            messages = notifications,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+        )
+
     }
 
     if (showDialog) {
+
         AddCardDialog(
+
             onAdd = { front, back ->
+
                 viewModel.addCard(deckId, front, back)
+
+                pushNotification(
+                    NotificationMessage(
+                        text = "Card added"
+                    )
+                )
+
                 showDialog = false
+
             },
-            onDismiss = { showDialog = false }
+
+            onDismiss = {
+                showDialog = false
+            }
+
         )
+
     }
+
 }
+
+
