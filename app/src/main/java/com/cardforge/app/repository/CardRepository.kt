@@ -11,6 +11,15 @@ class CardRepository(
         return cardDao.getCardsForDeck(deckId)
     }
 
+    suspend fun getDueCards(deckId: Long): List<CardEntity> {
+
+        return cardDao.getDueCards(
+            deckId,
+            System.currentTimeMillis()
+        )
+
+    }
+
     suspend fun insertCard(card: CardEntity) {
         cardDao.insertCard(card)
     }

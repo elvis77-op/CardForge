@@ -28,6 +28,17 @@ class ReviewViewModel(
         }
     }
 
+    fun loadDueCards(deckId: Long) {
+
+        viewModelScope.launch {
+
+            _cards.value =
+                cardRepository.getDueCards(deckId)
+
+        }
+
+    }
+
     fun reviewCard(card: CardEntity, quality: Int) {
 
         viewModelScope.launch {

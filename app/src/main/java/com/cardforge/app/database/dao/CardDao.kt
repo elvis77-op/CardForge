@@ -12,6 +12,19 @@ interface CardDao {
     """)
     suspend fun getCardsForDeck(deckId: Long): List<CardEntity>
 
+    @Query("""
+    SELECT c.*
+    FROM cards c
+    LEFT JOIN reviews r
+    ON c.id = r.cardId
+    WHERE c.deckId = :deckId
+    AND (r.nextReview IS NULL OR r.nextReview <= :now)
+    """)
+    suspend fun getDueCards(
+        deckId: Long,
+        now: Long
+    ): List<CardEntity>
+
     @Insert
     suspend fun insertCard(card: CardEntity)
 

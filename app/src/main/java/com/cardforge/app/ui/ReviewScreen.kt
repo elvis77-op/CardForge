@@ -26,7 +26,7 @@ fun ReviewScreen(
     var flipped by remember { mutableStateOf(false) }
 
     LaunchedEffect(Unit) {
-        viewModel.loadCards(deckId)
+        viewModel.loadDueCards(deckId)
     }
 
     if (cards.isEmpty()) {
