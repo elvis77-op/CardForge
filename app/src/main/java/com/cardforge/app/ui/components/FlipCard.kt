@@ -26,7 +26,7 @@ import androidx.compose.ui.unit.dp
 fun FlipCard(
     front: String,
     back: String,
-    onFlip: () -> Unit
+    onFlip: (Boolean) -> Unit
 ) {
 
     var flipped by remember { mutableStateOf(false) }
@@ -39,24 +39,28 @@ fun FlipCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(240.dp)
-            .graphicsLayer {
-
-                rotationY = rotation
-
-                cameraDistance = 8 * density
-
-            }
             .clickable {
 
                 flipped = !flipped
-                onFlip()
+                onFlip(flipped)
+
             },
         contentAlignment = Alignment.Center
     ) {
 
         Card(
+            modifier = Modifier
+                .fillMaxSize()
+                .graphicsLayer {
+
+                    rotationY = rotation
+                    cameraDistance = 12 * density
+
+                },
+
             shape = RoundedCornerShape(24.dp),
             elevation = CardDefaults.cardElevation(8.dp)
+
         ) {
 
             Box(
@@ -66,16 +70,29 @@ fun FlipCard(
                 contentAlignment = Alignment.Center
             ) {
 
-                Text(
-                    text =
-                        if (rotation <= 90f)
-                            front
-                        else
-                            back,
+                if (rotation <= 90f) {
 
-                    style =
-                        MaterialTheme.typography.headlineMedium
-                )
+                    Text(
+                        text = front,
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+
+                } else {
+
+                    Box(
+                        modifier = Modifier.graphicsLayer {
+                            rotationY = 180f
+                        }
+                    ) {
+
+                        Text(
+                            text = back,
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+
+                    }
+
+                }
 
             }
 

@@ -51,7 +51,8 @@ fun CardForgeNavHost(
 
             ReviewScreen(
                 deckId = deckId,
-                factory = reviewFactory
+                factory = reviewFactory,
+                navController = navController
             )
 
         }
