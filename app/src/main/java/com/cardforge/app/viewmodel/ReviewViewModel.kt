@@ -19,6 +19,7 @@ class ReviewViewModel(
     private val _cards = MutableStateFlow<List<CardEntity>>(emptyList())
     val cards: StateFlow<List<CardEntity>> = _cards
 
+
     fun loadCards(deckId: Long) {
 
         viewModelScope.launch {
@@ -31,11 +32,8 @@ class ReviewViewModel(
 
         viewModelScope.launch {
 
-            val previousInterval = 1
-            val previousEase = 2.5f
-
             val (interval, ease) =
-                SM2.review(previousInterval, previousEase, quality)
+                SM2.review(1, 2.5f, quality)
 
             val nextReview =
                 System.currentTimeMillis() + interval * 86400000L
@@ -50,6 +48,7 @@ class ReviewViewModel(
             )
 
             reviewRepository.insertReview(review)
+
         }
     }
 }

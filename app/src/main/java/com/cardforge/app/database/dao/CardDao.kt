@@ -6,7 +6,10 @@ import com.cardforge.app.database.entity.CardEntity
 @Dao
 interface CardDao {
 
-    @Query("SELECT * FROM cards WHERE deckId = :deckId")
+    @Query("""
+    SELECT * FROM cards 
+    WHERE deckId = :deckId
+    """)
     suspend fun getCardsForDeck(deckId: Long): List<CardEntity>
 
     @Insert

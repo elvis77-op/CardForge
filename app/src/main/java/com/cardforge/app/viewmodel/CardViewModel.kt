@@ -36,9 +36,15 @@ class CardViewModel(
         }
     }
 
-    fun deleteCard(card: CardEntity) {
+    fun deleteCard(card: CardEntity, deckId: Long) {
+
         viewModelScope.launch {
+
             repository.deleteCard(card)
+
+            _cards.value =
+                repository.getCardsForDeck(deckId)
+
         }
     }
 }

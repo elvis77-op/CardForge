@@ -5,65 +5,23 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.ui.platform.LocalContext
-import com.cardforge.app.utils.TxtImporter
-import com.cardforge.app.utils.TextChunker
-import com.cardforge.app.cardgen.BasicCardGenerator
-import com.cardforge.app.database.DatabaseProvider
-import com.cardforge.app.repository.CardRepository
-import kotlinx.coroutines.launch
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.navigation.NavController
 
 @Composable
 fun DeckDetailScreen(
-    deckId: Long
+    deckId: Long,
+    navController: NavController
 ) {
 
     val context = LocalContext.current
 
-    val database = DatabaseProvider.getDatabase(context)
-    val repository = CardRepository(database.cardDao())
+    CardListScreen(
+        context = context,
+        deckId = deckId,
+        onStartReview = {
 
-    val scope = rememberCoroutineScope()
+            navController.navigate("review/$deckId")
 
-    val txtPicker = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-
-        uri?.let {
-
-            val text = TxtImporter.readText(context, it)
-
-            val chunks = TextChunker.splitText(text)
-
-            val cards =
-                BasicCardGenerator.generateCards(deckId, chunks)
-
-            scope.launch {
-
-                cards.forEach { card ->
-                    repository.insertCard(card)
-                }
-
-            }
         }
-    }
-
-    Column {
-
-        Button(
-            onClick = { txtPicker.launch("text/plain") }
-        ) {
-            Text("Import TXT")
-        }
-
-        CardListScreen(
-            context = context,
-            deckId = deckId
-        )
-    }
+    )
 }

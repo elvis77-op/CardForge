@@ -11,25 +11,44 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import com.cardforge.app.database.DatabaseProvider
+import com.cardforge.app.repository.CardRepository
+import com.cardforge.app.repository.ReviewRepository
 import com.cardforge.app.ui.DeckListScreen
 import com.cardforge.app.ui.navigation.CardForgeNavHost
 import com.cardforge.app.ui.theme.CardForgeTheme
+import com.cardforge.app.viewmodel.ReviewViewModelFactory
 
 class MainActivity : ComponentActivity() {
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        val database = DatabaseProvider.getDatabase(this)
+
+        val cardRepository =
+            CardRepository(database.cardDao())
+
+        val reviewRepository =
+            ReviewRepository(database.reviewDao())
+
+        val reviewFactory =
+            ReviewViewModelFactory(
+                cardRepository,
+                reviewRepository
+            )
+
         setContent {
 
-            CardForgeTheme {
-
-                CardForgeNavHost()
-
-            }
+            CardForgeNavHost(
+                reviewFactory = reviewFactory
+            )
 
         }
     }
 }
+
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
