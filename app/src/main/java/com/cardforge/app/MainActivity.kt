@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.cardforge.app.ui.DeckListScreen
+import com.cardforge.app.ui.navigation.CardForgeNavHost
 import com.cardforge.app.ui.theme.CardForgeTheme
 
 class MainActivity : ComponentActivity() {
@@ -22,9 +23,7 @@ class MainActivity : ComponentActivity() {
 
             CardForgeTheme {
 
-                DeckListScreen(
-                    context = applicationContext
-                )
+                CardForgeNavHost()
 
             }
 

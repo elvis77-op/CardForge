@@ -14,7 +14,10 @@ import com.cardforge.app.viewmodel.DeckViewModel
 import com.cardforge.app.viewmodel.DeckViewModelFactory
 
 @Composable
-fun DeckListScreen(context: android.content.Context) {
+fun DeckListScreen(
+    context: android.content.Context,
+    onDeckClick: (Long) -> Unit
+) {
 
     val database = DatabaseProvider.getDatabase(context)
     val repository = DeckRepository(database.deckDao())
@@ -76,7 +79,8 @@ fun DeckListScreen(context: android.content.Context) {
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 4.dp)
+                        .padding(vertical = 4.dp),
+                    onClick = { onDeckClick(deck.id) }
                 ) {
 
                     Row(
