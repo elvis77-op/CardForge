@@ -7,9 +7,7 @@ on:
       - main
 
 jobs:
-
   android:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -17,7 +15,6 @@ jobs:
     - name: Checkout
       uses: actions/checkout@v4
 
-    # Setup Java
     - name: Setup JDK
       uses: actions/setup-java@v4
       with:
@@ -25,23 +22,20 @@ jobs:
         java-version: 17
         cache: gradle
 
-    # Setup Android SDK
     - name: Setup Android SDK
       uses: android-actions/setup-android@v3
 
-    # Gradle cache
-    - name: Gradle Cache
-      uses: gradle/gradle-build-action@v2
+    - name: Grant execute permission
+      run: chmod +x gradlew
 
-    # Build project
-    - name: Compile Project
+
+    - name: Build project
       run: ./gradlew build --stacktrace
 
-    # Unit tests (always run)
     - name: Run Unit Tests
       run: ./gradlew testDebugUnitTest
 
-    # Emulator tests (only main branch)
+
     - name: Run Emulator Tests
       if: github.ref == 'refs/heads/main'
       uses: reactivecircus/android-emulator-runner@v2
@@ -52,22 +46,11 @@ jobs:
         profile: pixel_6
         script: ./gradlew connectedCheck
 
-    # Build APK
     - name: Build Debug APK
       run: ./gradlew assembleDebug
 
-    # Upload APK
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: CardForge-debug
         path: app/build/outputs/apk/debug/app-debug.apk
-
-    # Release (only main branch)
-    - name: Create Release
-      if: github.ref == 'refs/heads/main'
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: v${{ github.run_number }}
-        name: CardForge v${{ github.run_number }}
-        files: app/build/outputs/apk/debug/app-debug.apk
