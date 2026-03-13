@@ -168,7 +168,10 @@ fun CardListScreen(
                 modifier = Modifier.weight(1f)
             ) {
 
-                items(cards) { card ->
+                items(
+                    items = cards,
+                    key = { it.id }
+                ) { card ->
 
                     Box(
                         modifier = Modifier.fillMaxWidth(),

@@ -1,13 +1,17 @@
 package com.cardforge.app.ui.components
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -69,32 +73,24 @@ fun CardPreviewItem(
                 .fillMaxWidth(0.92f)
                 .padding(vertical = 8.dp),
 
-            shape = RoundedCornerShape(20.dp),
+            shape = RoundedCornerShape(18.dp),
 
             elevation = CardDefaults.cardElevation(4.dp)
 
         ) {
 
-            Column(
-                modifier = Modifier.padding(16.dp)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(70.dp)
             ) {
-
-                Text(
-                    text = "Front",
-                    style = MaterialTheme.typography.labelMedium
-                )
 
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .padding(vertical = 6.dp)
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(8.dp)
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(8.dp),
+                    contentAlignment = Alignment.CenterStart
                 ) {
 
                     Text(
@@ -105,24 +101,21 @@ fun CardPreviewItem(
 
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Text(
-                    text = "Back",
-                    style = MaterialTheme.typography.labelMedium
+                Box(
+                    modifier = Modifier
+                        .width(2.dp)
+                        .fillMaxHeight()
+                        .background(
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                        )
                 )
 
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(60.dp)
-                        .padding(vertical = 6.dp)
-                        .border(
-                            1.dp,
-                            MaterialTheme.colorScheme.outline,
-                            RoundedCornerShape(8.dp)
-                        )
-                        .padding(8.dp)
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .padding(8.dp),
+                    contentAlignment = Alignment.CenterStart
                 ) {
 
                     Text(
