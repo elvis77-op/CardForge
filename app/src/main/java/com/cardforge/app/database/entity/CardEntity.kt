@@ -16,9 +16,9 @@ data class CardEntity(
 
     val cardType: String,
 
-    val imagePath: String?,
+    val imagePath: String? = null,
 
-    val sourceRef: String?,
+    val sourceRef: String? = null,
 
     val createdAt: Long = System.currentTimeMillis()
 
