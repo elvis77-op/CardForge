@@ -1,45 +1,25 @@
 package com.cardforge.app.ui
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import android.os.Build
+import androidx.annotation.RequiresApi
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ProgressIndicatorDefaults
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
+import com.cardforge.app.database.entity.CardEntity
 import com.cardforge.app.ui.components.FlipCard
 import com.cardforge.app.ui.components.ReviewProgressBar
+import com.cardforge.app.ui.components.StudyProgressBar
 import com.cardforge.app.viewmodel.ReviewViewModel
 import com.cardforge.app.viewmodel.ReviewViewModelFactory
 
+@RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewScreen(
@@ -52,20 +32,29 @@ fun ReviewScreen(
 
     val cards by viewModel.cards.collectAsState()
 
-    var currentIndex by remember { mutableStateOf(0) }
-
     var flipped by remember { mutableStateOf(false) }
 
-    val progress =
-        (currentIndex + 1).toFloat() / cards.size.toFloat()
+    val newCards =
+        cards.count { it.id > 0 }
 
-    ReviewProgressBar(
-        current = currentIndex,
-        total = cards.size
-    )
+    val reviewCards =
+        cards.size - newCards
+
+    val queue = remember { mutableStateListOf<CardEntity>() }
+
+    val completed = cards.size - queue.size
+
+    val remaining = queue.size
 
     LaunchedEffect(Unit) {
         viewModel.loadDueCards(deckId)
+    }
+
+    LaunchedEffect(cards) {
+
+        queue.clear()
+        queue.addAll(cards)
+
     }
 
     if (cards.isEmpty()) {
@@ -80,7 +69,7 @@ fun ReviewScreen(
         return
     }
 
-    if (currentIndex >= cards.size) {
+    if (completed >= cards.size) {
 
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -92,16 +81,15 @@ fun ReviewScreen(
         return
     }
 
-    val card = cards[currentIndex]
+    val card = queue[0]
+
     Scaffold(
 
         topBar = {
 
             TopAppBar(
 
-                title = {
-                    Text("Review")
-                },
+                title = { Text("Review") },
 
                 navigationIcon = {
 
@@ -123,17 +111,30 @@ fun ReviewScreen(
         }
 
     ) { padding ->
+
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
+                .padding(padding)
+                .padding(20.dp),
 
-            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            StudyProgressBar(
+
+                completed = completed,
+                remaining = remaining
+
+            )
+//            ReviewProgressBar(
+//                current = currentIndex,
+//                total = cards.size
+//            )
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Card ${currentIndex + 1} / ${cards.size}",
+                text = "Card $completed / ${cards.size}",
                 style = MaterialTheme.typography.labelLarge
             )
 
@@ -159,7 +160,8 @@ fun ReviewScreen(
 
                             viewModel.reviewCard(card, 1)
 
-                            currentIndex++
+                            queue.addLast(card)
+                            queue.removeFirst()
                             flipped = false
 
                         }
@@ -168,18 +170,18 @@ fun ReviewScreen(
                     }
 
                     Button(
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary
+                        ),
                         onClick = {
 
                             viewModel.reviewCard(card, 3)
 
-                            currentIndex++
+                            queue.removeFirst()
                             flipped = false
 
                         }
                     ) {
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.primary
-                        )
                         Text("Good")
                     }
 
@@ -188,7 +190,7 @@ fun ReviewScreen(
 
                             viewModel.reviewCard(card, 4)
 
-                            currentIndex++
+                            queue.removeFirst()
                             flipped = false
 
                         }
@@ -206,6 +208,7 @@ fun ReviewScreen(
                 )
 
             }
+
         }
 
     }
