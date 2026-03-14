@@ -44,18 +44,19 @@ fun ReviewScreen(
 
     val completed = cards.size - queue.size
 
-    val remaining = queue.size
-
     LaunchedEffect(Unit) {
         viewModel.loadDueCards(deckId)
     }
 
     LaunchedEffect(cards) {
 
-        queue.clear()
-        queue.addAll(cards)
+        if (queue.isEmpty()) {
+            queue.addAll(cards)
+        }
 
     }
+
+
 
     if (cards.isEmpty()) {
 
@@ -82,6 +83,10 @@ fun ReviewScreen(
     }
 
     val card = queue[0]
+
+    LaunchedEffect(card.id) {
+        flipped = false
+    }
 
     Scaffold(
 
@@ -120,16 +125,14 @@ fun ReviewScreen(
 
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            val progress = cards.size - queue.size
+
             StudyProgressBar(
 
-                completed = completed,
-                remaining = remaining
+                progress = progress,
+                total = cards.size
 
             )
-//            ReviewProgressBar(
-//                current = currentIndex,
-//                total = cards.size
-//            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -160,8 +163,9 @@ fun ReviewScreen(
 
                             viewModel.reviewCard(card, 1)
 
-                            queue.addLast(card)
+                            queue.add(minOf(3, queue.size), card)
                             queue.removeFirst()
+
                             flipped = false
 
                         }
@@ -178,6 +182,7 @@ fun ReviewScreen(
                             viewModel.reviewCard(card, 3)
 
                             queue.removeFirst()
+
                             flipped = false
 
                         }
@@ -191,6 +196,7 @@ fun ReviewScreen(
                             viewModel.reviewCard(card, 4)
 
                             queue.removeFirst()
+
                             flipped = false
 
                         }

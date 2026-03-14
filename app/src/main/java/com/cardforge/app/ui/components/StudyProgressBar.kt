@@ -16,43 +16,53 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun StudyProgressBar(
-    completed: Int,
-    remaining: Int
+
+    progress: Int,
+    total: Int,
+    windowSize: Int = 20
+
 ) {
 
-    val total = completed + remaining
+    val size = windowSize.coerceAtMost(total)
 
-    if (total == 0) return
+    val center = size / 2
+
+    val start = when {
+
+        total <= size -> 0
+
+        progress < center -> 0
+
+        progress > total - center -> total - size
+
+        else -> progress - center
+
+    }
+
+    val end = start + size
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .height(14.dp),
+
         horizontalArrangement = Arrangement.spacedBy(4.dp)
+
     ) {
 
-        repeat(completed) {
+        for (i in start until end) {
+
+            val color = if (i < progress)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.surfaceVariant
 
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
                     .background(
-                        MaterialTheme.colorScheme.primary,
-                        RoundedCornerShape(4.dp)
-                    )
-            )
-
-        }
-
-        repeat(remaining) {
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .background(
-                        MaterialTheme.colorScheme.surfaceVariant,
+                        color,
                         RoundedCornerShape(4.dp)
                     )
             )
