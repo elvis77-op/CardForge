@@ -11,6 +11,8 @@ object BasicCardGenerator {
 
         val cards = mutableListOf<CardEntity>()
 
+        var count = 1
+
         for (chunk in textChunks) {
 
             val sentences =
@@ -22,10 +24,12 @@ object BasicCardGenerator {
 
                     val card = CardEntity(
                         deckId = deckId,
-                        front = "Explain:",
+                        front = "Card$count",
                         back = sentence,
                         cardType = "basic"
                     )
+
+                    count++
 
                     cards.add(card)
                 }

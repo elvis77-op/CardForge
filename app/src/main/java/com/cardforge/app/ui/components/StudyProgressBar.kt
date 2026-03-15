@@ -1,74 +1,135 @@
 package com.cardforge.app.ui.components
 
-import androidx.compose.runtime.Composable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.*
+import androidx.compose.runtime.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.dp
 
 @Composable
 fun StudyProgressBar(
-
-    progress: Int,
-    total: Int,
+    blocks: List<ProgressBlock>,
+    currentIndex: Int,
     windowSize: Int = 20
-
 ) {
 
-    val size = windowSize.coerceAtMost(total)
+    val m = blocks.size
+    val n = minOf(windowSize, m)
+    val center = n / 2
 
-    val center = size / 2
+    val windowStart = when {
 
-    val start = when {
+        currentIndex < center -> 0
 
-        total <= size -> 0
+        currentIndex < m - center -> currentIndex - center
 
-        progress < center -> 0
-
-        progress > total - center -> total - size
-
-        else -> progress - center
-
+        else -> m - n
     }
 
-    val end = start + size
+    val pointer = when {
+
+        currentIndex < center -> currentIndex
+
+        currentIndex < m - center -> center
+
+        else -> currentIndex - (m - n)
+    }
+
+    val flashTransition = rememberInfiniteTransition()
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .height(14.dp),
-
+            .height(16.dp),
         horizontalArrangement = Arrangement.spacedBy(4.dp)
-
     ) {
 
-        for (i in start until end) {
+        for (i in 0 until n) {
 
-            val color = if (i < progress)
-                MaterialTheme.colorScheme.primary
-            else
-                MaterialTheme.colorScheme.surfaceVariant
+            val blockIndex = windowStart + i
+            val block = blocks[blockIndex]
+
+            val baseColor = when (block.state) {
+
+                ProgressState.UNCOMPLETED ->
+                    MaterialTheme.colorScheme.surfaceVariant
+
+                ProgressState.GOOD ->
+                    MaterialTheme.colorScheme.primary
+
+                ProgressState.EASY ->
+                    MaterialTheme.colorScheme.primaryContainer
+
+                ProgressState.AGAIN ->
+                    MaterialTheme.colorScheme.outlineVariant
+            }
+
+            val animatedColor by animateColorAsState(
+                targetValue = baseColor,
+                animationSpec = tween(350)
+            )
+
+            val flashAlpha by flashTransition.animateFloat(
+                initialValue = 0.4f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(
+                        durationMillis = when (block.state) {
+
+                            ProgressState.AGAIN -> 1200
+                            ProgressState.EASY -> 1600
+
+                            else -> 800
+                        }
+                    ),
+                    repeatMode = RepeatMode.Reverse
+                )
+            )
 
             Box(
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxHeight()
+                    .graphicsLayer {
+
+                        if (
+                            block.state == ProgressState.AGAIN ||
+                            block.state == ProgressState.EASY
+                        ) {
+                            this.alpha = flashAlpha
+                        }
+
+                    }
                     .background(
-                        color,
+                        animatedColor,
                         RoundedCornerShape(4.dp)
                     )
-            )
+            ) {
+
+                if (i == pointer) {
+
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(2.dp)
+                            .background(
+                                MaterialTheme.colorScheme.secondary,
+                                RoundedCornerShape(3.dp)
+                            )
+                    )
+
+                }
+
+            }
 
         }
 
     }
-
 }
+
+

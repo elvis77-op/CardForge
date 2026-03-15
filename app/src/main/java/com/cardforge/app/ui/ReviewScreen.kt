@@ -14,7 +14,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.cardforge.app.database.entity.CardEntity
 import com.cardforge.app.ui.components.FlipCard
-import com.cardforge.app.ui.components.ReviewProgressBar
+import com.cardforge.app.ui.components.ProgressBlock
+import com.cardforge.app.ui.components.ProgressState
 import com.cardforge.app.ui.components.StudyProgressBar
 import com.cardforge.app.viewmodel.ReviewViewModel
 import com.cardforge.app.viewmodel.ReviewViewModelFactory
@@ -34,15 +35,41 @@ fun ReviewScreen(
 
     var flipped by remember { mutableStateOf(false) }
 
-    val newCards =
-        cards.count { it.id > 0 }
-
-    val reviewCards =
-        cards.size - newCards
-
     val queue = remember { mutableStateListOf<CardEntity>() }
 
-    val completed = cards.size - queue.size
+    val progressBlocks = remember {
+        mutableStateListOf<ProgressBlock>()
+    }
+
+    fun answerCard(
+        card: CardEntity,
+        state: ProgressState
+    ) {
+
+        val index = queue.indexOfFirst { it.id == card.id }
+
+        if (index == -1) return
+
+        val blockIndex =
+            cards.indexOfFirst { it.id == card.id }
+
+        if (blockIndex != -1) {
+            progressBlocks[blockIndex].state = state
+        }
+
+        val removedCard = queue.removeAt(index)
+
+        if (state == ProgressState.AGAIN) {
+
+            val insertIndex = (queue.size * 0.7).toInt()
+
+            queue.add(insertIndex, removedCard)
+
+        }
+
+    }
+
+
 
     LaunchedEffect(Unit) {
         viewModel.loadDueCards(deckId)
@@ -54,9 +81,17 @@ fun ReviewScreen(
             queue.addAll(cards)
         }
 
+        if (progressBlocks.isEmpty()) {
+
+            cards.forEachIndexed { i, _ ->
+                progressBlocks.add(
+                    ProgressBlock(index = i)
+                )
+            }
+
+        }
+
     }
-
-
 
     if (cards.isEmpty()) {
 
@@ -70,19 +105,56 @@ fun ReviewScreen(
         return
     }
 
-    if (completed >= cards.size) {
+    if (queue.isEmpty()) {
 
-        Box(
-            modifier = Modifier.fillMaxSize(),
-            contentAlignment = Alignment.Center
-        ) {
-            Text("🎉 Review Complete")
+        Scaffold(
+
+            topBar = {
+
+                TopAppBar(
+
+                    title = { Text("Review Complete") },
+
+                    navigationIcon = {
+
+                        IconButton(
+                            onClick = { navController.popBackStack() }
+                        ) {
+
+                            Icon(
+                                imageVector = Icons.Default.ArrowBack,
+                                contentDescription = "Back"
+                            )
+
+                        }
+
+                    }
+
+                )
+
+            }
+
+        ) { padding ->
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding),
+                contentAlignment = Alignment.Center
+            ) {
+
+                Text("🎉 Review Complete")
+
+            }
+
         }
 
         return
     }
 
-    val card = queue[0]
+    val card = queue.first()
+
+    val currentIndex = cards.size - queue.size
 
     LaunchedEffect(card.id) {
         flipped = false
@@ -125,29 +197,30 @@ fun ReviewScreen(
 
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            val progress = cards.size - queue.size
 
             StudyProgressBar(
-
-                progress = progress,
-                total = cards.size
-
+                blocks = progressBlocks,
+                currentIndex = currentIndex
             )
+
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Card $completed / ${cards.size}",
+                text = "Card ${cards.size - queue.size} / ${cards.size}",
                 style = MaterialTheme.typography.labelLarge
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            FlipCard(
-                front = card.front,
-                back = card.back,
-                onFlip = { flipped = true }
-            )
+
+            key(card.id) {
+                FlipCard(
+                    front = card.front,
+                    back = card.back,
+                    onFlip = { flipped = true }
+                )
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -163,10 +236,8 @@ fun ReviewScreen(
 
                             viewModel.reviewCard(card, 1)
 
-                            queue.add(minOf(3, queue.size), card)
-                            queue.removeFirst()
+                            answerCard(card, ProgressState.AGAIN)
 
-                            flipped = false
 
                         }
                     ) {
@@ -181,9 +252,7 @@ fun ReviewScreen(
 
                             viewModel.reviewCard(card, 3)
 
-                            queue.removeFirst()
-
-                            flipped = false
+                            answerCard(card, ProgressState.GOOD)
 
                         }
                     ) {
@@ -195,9 +264,8 @@ fun ReviewScreen(
 
                             viewModel.reviewCard(card, 4)
 
-                            queue.removeFirst()
+                            answerCard(card, ProgressState.EASY)
 
-                            flipped = false
 
                         }
                     ) {
