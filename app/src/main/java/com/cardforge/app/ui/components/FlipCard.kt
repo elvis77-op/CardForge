@@ -24,8 +24,8 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun FlipCard(
-    front: String,
-    back: String,
+    front: @Composable () -> Unit,
+    back: @Composable () -> Unit,
     onFlip: (Boolean) -> Unit
 ) {
 
@@ -40,10 +40,8 @@ fun FlipCard(
             .fillMaxWidth()
             .height(240.dp)
             .clickable {
-
                 flipped = !flipped
                 onFlip(flipped)
-
             },
         contentAlignment = Alignment.Center
     ) {
@@ -72,24 +70,18 @@ fun FlipCard(
 
                 if (rotation <= 90f) {
 
-                    Text(
-                        text = front,
-                        style = MaterialTheme.typography.headlineMedium
-                    )
+                    // front side
+                    front()
 
                 } else {
 
+                    // back side
                     Box(
                         modifier = Modifier.graphicsLayer {
                             rotationY = 180f
                         }
                     ) {
-
-                        Text(
-                            text = back,
-                            style = MaterialTheme.typography.headlineMedium
-                        )
-
+                        back()
                     }
 
                 }

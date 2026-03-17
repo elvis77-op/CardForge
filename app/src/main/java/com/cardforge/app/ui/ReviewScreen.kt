@@ -2,13 +2,22 @@ package com.cardforge.app.ui
 
 import android.os.Build
 import androidx.annotation.RequiresApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
@@ -20,6 +29,10 @@ import com.cardforge.app.ui.components.StudyProgressBar
 import com.cardforge.app.viewmodel.ReviewViewModel
 import com.cardforge.app.viewmodel.ReviewViewModelFactory
 
+data class ReviewItem(
+    val card: CardEntity,
+    var state: ProgressState = ProgressState.UNCOMPLETED
+)
 @RequiresApi(Build.VERSION_CODES.VANILLA_ICE_CREAM)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,36 +48,46 @@ fun ReviewScreen(
 
     var flipped by remember { mutableStateOf(false) }
 
-    val queue = remember { mutableStateListOf<CardEntity>() }
+    val queue = remember { mutableStateListOf<ReviewItem>() }
 
-    val progressBlocks = remember {
-        mutableStateListOf<ProgressBlock>()
-    }
+    var currentIndex by remember { mutableIntStateOf(0) }
 
     fun answerCard(
-        card: CardEntity,
+        item: ReviewItem,
         state: ProgressState
     ) {
 
-        val index = queue.indexOfFirst { it.id == card.id }
-
+        val index = queue.indexOf(item)
         if (index == -1) return
 
-        val blockIndex =
-            cards.indexOfFirst { it.id == card.id }
+        item.state = state
 
-        if (blockIndex != -1) {
-            progressBlocks[blockIndex].state = state
-        }
+        when (state) {
 
-        val removedCard = queue.removeAt(index)
+            ProgressState.AGAIN -> {
 
-        if (state == ProgressState.AGAIN) {
+                val removed = queue.removeAt(index)
 
-            val insertIndex = (queue.size * 0.7).toInt()
+                val insertIndex =
+                    minOf(index + 3, queue.size)
 
-            queue.add(insertIndex, removedCard)
+                queue.add(insertIndex, removed)
 
+            }
+
+            ProgressState.GOOD -> {
+
+                currentIndex++
+
+            }
+
+            ProgressState.EASY -> {
+
+                currentIndex++
+
+            }
+
+            else -> {}
         }
 
     }
@@ -77,19 +100,11 @@ fun ReviewScreen(
 
     LaunchedEffect(cards) {
 
-        if (queue.isEmpty()) {
-            queue.addAll(cards)
+        queue.clear()
+        cards.forEach {
+            queue.add(ReviewItem(it))
         }
-
-        if (progressBlocks.isEmpty()) {
-
-            cards.forEachIndexed { i, _ ->
-                progressBlocks.add(
-                    ProgressBlock(index = i)
-                )
-            }
-
-        }
+        currentIndex = 0
 
     }
 
@@ -105,7 +120,7 @@ fun ReviewScreen(
         return
     }
 
-    if (queue.isEmpty()) {
+    if (currentIndex == queue.size) {
 
         Scaffold(
 
@@ -146,15 +161,23 @@ fun ReviewScreen(
                 Text("🎉 Review Complete")
 
             }
+            Button(
+                onClick = {
+                    navController.popBackStack()
+                }
+            ) {
+
+                Text("Back to Deck")
+
+            }
 
         }
 
         return
     }
 
-    val card = queue.first()
-
-    val currentIndex = cards.size - queue.size
+    val currentItem = queue[currentIndex]
+    val card = currentItem.card
 
     LaunchedEffect(card.id) {
         flipped = false
@@ -199,30 +222,140 @@ fun ReviewScreen(
         ) {
 
             StudyProgressBar(
-                blocks = progressBlocks,
+                queue = queue,
                 currentIndex = currentIndex
             )
-
 
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Card ${cards.size - queue.size} / ${cards.size}",
+                text = "Card ${currentIndex + 1} / ${queue.size}",
                 style = MaterialTheme.typography.labelLarge
             )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-
+//            Box {
+//                key(card.id) {
+//                    FlipCard(
+//                        front = card.front,
+//                        back = card.back,
+//                        onFlip = { flipped = true }
+//                    )
+//                }
+//
+//                Spacer(modifier = Modifier.height(32.dp))
+//
+//                if (currentItem.state == ProgressState.AGAIN) {
+//
+//                    Box(
+//                        modifier = Modifier
+//                            .align(Alignment.TopEnd)
+//                            .padding(8.dp)
+//                            .background(
+//                                Color(0xFFFF5252),
+//                                RoundedCornerShape(6.dp)
+//                            )
+//                            .padding(horizontal = 8.dp, vertical = 4.dp)
+//                    ) {
+//
+//                        Text(
+//                            text = "Reviewed Before",
+//                            color = Color.White,
+//                            style = MaterialTheme.typography.labelSmall
+//                        )
+//
+//                    }
+//                }
+//            }
             key(card.id) {
-                FlipCard(
-                    front = card.front,
-                    back = card.back,
-                    onFlip = { flipped = true }
-                )
-            }
 
-            Spacer(modifier = Modifier.height(32.dp))
+                FlipCard(
+
+                    front = {
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    if (currentItem.state == ProgressState.AGAIN)
+                                        Color(0xFFFF5252).copy(alpha = 0.05f)
+                                    else Color.Transparent
+                                )
+                        ) {
+
+                            if (currentItem.state == ProgressState.AGAIN) {
+
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .fillMaxWidth()
+                                        .height(4.dp)
+                                        .background(Color(0xFFFF5252))
+                                )
+
+                            }
+
+                            Text(
+                                text = card.front,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(horizontal = 32.dp),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                maxLines = 6,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                        }
+
+                    },
+
+                    back = {
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(
+                                    if (currentItem.state == ProgressState.AGAIN)
+                                        Color(0xFFFF5252).copy(alpha = 0.05f)
+                                    else Color.Transparent
+                                )
+                        ) {
+                            if (currentItem.state == ProgressState.AGAIN) {
+
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .fillMaxWidth()
+                                        .height(4.dp)
+                                        .background(Color(0xFFFF5252))
+                                )
+
+                            }
+
+                            Text(
+                                text = card.back,
+                                modifier = Modifier
+                                    .align(Alignment.Center)
+                                    .padding(horizontal = 32.dp),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                textAlign = TextAlign.Center,
+                                maxLines = 8,
+                                overflow = TextOverflow.Ellipsis
+                            )
+
+                        }
+
+                    },
+
+                    onFlip = { flipped = true }
+
+                )
+
+            }
 
             if (flipped) {
 
@@ -236,7 +369,7 @@ fun ReviewScreen(
 
                             viewModel.reviewCard(card, 1)
 
-                            answerCard(card, ProgressState.AGAIN)
+                            answerCard(currentItem, ProgressState.AGAIN)
 
 
                         }
@@ -252,7 +385,7 @@ fun ReviewScreen(
 
                             viewModel.reviewCard(card, 3)
 
-                            answerCard(card, ProgressState.GOOD)
+                            answerCard(currentItem, ProgressState.GOOD)
 
                         }
                     ) {
@@ -264,7 +397,7 @@ fun ReviewScreen(
 
                             viewModel.reviewCard(card, 4)
 
-                            answerCard(card, ProgressState.EASY)
+                            answerCard(currentItem, ProgressState.EASY)
 
 
                         }
