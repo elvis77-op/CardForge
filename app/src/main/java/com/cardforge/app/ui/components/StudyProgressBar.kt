@@ -4,6 +4,7 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.runtime.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -99,7 +100,7 @@ fun StudyProgressBar(
             )
 
             val pointerScale by animateFloatAsState(
-                targetValue = 1.25f,
+                targetValue = if (i == pointer) 1.2f else 1f,
                 animationSpec = spring(
                     dampingRatio = Spring.DampingRatioMediumBouncy
                 )
@@ -153,12 +154,30 @@ fun StudyProgressBar(
                             .fillMaxSize()
                             .padding(2.dp)
                             .background(
-                                MaterialTheme.colorScheme.primary,
+                                when (state) {
+                                    ProgressState.UNCOMPLETED ->
+                                        MaterialTheme.colorScheme.surface
+
+                                    ProgressState.GOOD ->
+                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
+
+                                    ProgressState.EASY ->
+                                        Color(0xFF26C6DA).copy(alpha = 0.9f)
+
+                                    ProgressState.AGAIN ->
+                                        Color(0xFFFF5252).copy(alpha = 0.95f)
+                                },
                                 RoundedCornerShape(3.dp)
+                            )
+                            .border(
+                                width = 2.dp,
+                                color = Color.White.copy(alpha = 0.8f),
+                                shape = RoundedCornerShape(3.dp)
                             )
                             .graphicsLayer {
 
-                                    scaleY = bounce
+                                scaleX = pointerScale
+                                scaleY = pointerScale
 
                             }
                     )
